@@ -11,7 +11,7 @@ import java.io.Serializable;
  */
 
 /*
- *Vamos fazer o commit :)!
+ *A gravação de video está sempre a falhar, mas desta é que é ! :) - Commit no Git
  */
 public class Order implements Serializable {
 	/**
