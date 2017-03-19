@@ -10,9 +10,8 @@ import java.io.Serializable;
  * @author alc
  */
 
-
 /*
- *Vamos testar o commit novamente :)
+ *Vamos fazer o commit :)!
  */
 public class Order implements Serializable {
 	/**
