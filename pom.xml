@@ -20,4 +20,12 @@
     <version>1.9.5</version>
 </dependency>
   </dependencies>
+  <build>
+  	<plugins>
+  		<plugin>
+  			<groupId>Mockito</groupId>
+  			<artifactId>Mockito</artifactId>
+  		</plugin>
+  	</plugins>
+  </build>
 </project>
