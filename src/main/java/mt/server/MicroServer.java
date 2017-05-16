@@ -13,6 +13,26 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.sql.Date;
+import java.sql.Time;
+import java.text.DateFormat;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
 import mt.Order;
 import mt.comm.ServerComm;
 import mt.comm.ServerSideMessage;
@@ -56,6 +76,17 @@ public class MicroServer implements MicroTraderServer {
 	 * Order Server ID
 	 */
 	private static int id = 1;
+	
+	/**
+	 * Name of the XML file where the session will be saved
+	 */
+	private String docName = "MicroTraderPersistence(US) " +  System.currentTimeMillis() +".xml";
+	
+	/**
+	 *  Name of the dir where the XML file will be saved
+	 */
+	private String docDir = System.getProperty("user.dir")+"/src/main/resources/";
+	
 	
 	/** The value is {@value #EMPTY} */
 	public static final int EMPTY = 0;
@@ -103,7 +134,7 @@ public class MicroServer implements MicroTraderServer {
 						if(msg.getOrder().getServerOrderID() == EMPTY){
 							msg.getOrder().setServerOrderID(id++);
 						}
-						notifyAllClients(msg.getOrder());
+						//notifyAllClients(msg.getOrder());
 						processNewOrder(msg);
 					} catch (ServerException e) {
 						serverComm.sendError(msg.getSenderNickname(), e.getMessage());
@@ -116,6 +147,32 @@ public class MicroServer implements MicroTraderServer {
 		LOGGER.log(Level.INFO, "Shutting Down Server...");
 	}
 
+
+	/**	
+	 * @param docDir the new name of the directory where the XML file will be saved
+	 */
+	public void setDocDir(String docDir) {
+		this.docDir = docDir;
+	}
+	
+	/**
+	 * 
+	 * @return docDir the name of the directory where the XML file will be saved
+	 */
+
+	public String getDocDir() {
+		return docDir;
+	}
+	
+	/**
+	 * 
+	 * @return docname the name of the XML file where the session's transactions are saved
+	 */
+	public String getDocName() {
+		return docName;
+	}
+	
+	
 
 	/**
 	 * Verify if user is already connected
@@ -220,8 +277,14 @@ public class MicroServer implements MicroTraderServer {
 		Order o = msg.getOrder();
 		
 		// save the order on map
-		saveOrder(o);
+		
+		boolean saveOrderSucess = saveOrder(o);
+		if(saveOrderSucess){
+			
+			notifyAllClients(msg.getOrder());
+			logOrder(o);
 
+		
 		// if is buy order
 		if (o.isBuyOrder()) {
 			processBuy(msg.getOrder());
@@ -240,22 +303,89 @@ public class MicroServer implements MicroTraderServer {
 
 		// reset the set of changed orders
 		updatedOrders = new HashSet<>();
-
+		}
 	}
 	
+	//Create new method logOrder - 
+	private void logOrder(Order o) {
+			try {
+				LOGGER.log(Level.INFO, "Adding Order to XML File");
+				LOGGER.log(Level.INFO, "File Location" + docDir+docName);
+				Document doc;
+				File inputFile = new File(docDir+docName);
+				
+				if(!inputFile.exists()){
+					inputFile.createNewFile();
+					DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			        doc = dBuilder.newDocument();
+			        doc.appendChild(doc.createElement("XML"));
+				}else{
+					DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			        doc = dBuilder.parse(inputFile);
+			        doc.getDocumentElement().normalize();
+				}
+		        
+		         
+		        Element newOrder =  doc.createElement("Order");
+		        newOrder.setAttribute("Id",String.valueOf(o.getServerOrderID()));
+		        if(o.isBuyOrder()){
+		        	newOrder.setAttribute("Type","Buy");
+		        }else{
+		        	newOrder.setAttribute("Type","Sell");
+		         }
+		        newOrder.setAttribute("Stock",o.getStock());
+		        newOrder.setAttribute("Units",String.valueOf(o.getNumberOfUnits()));
+		        newOrder.setAttribute("Price",String.valueOf(o.getPricePerUnit()));
+		        Node n = doc.getDocumentElement();
+		        n.appendChild(newOrder);
+		        Transformer transformer = TransformerFactory.newInstance().newTransformer();
+		        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+		        StreamResult result = new StreamResult(new FileOutputStream(docDir+docName));
+		        DOMSource source = new DOMSource(doc);
+		        transformer.transform(source, result);
+		        LOGGER.log(Level.INFO,"ADDED ELEMENT TO XML");
+		         
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+
 	/**
 	 * Store the order on map
 	 * 
 	 * @param o
 	 * 			the order to be stored on map
+	 * @return 
 	 */
-	private void saveOrder(Order o) {
+	private boolean saveOrder(Order o) {
 		LOGGER.log(Level.INFO, "Storing the new order...");
-		
-		//save order on map
-		Set<Order> orders = orderMap.get(o.getNickname());
-		orders.add(o);		
+		if(o.getNumberOfUnits()>=10){
+			//save order on map
+			Set<Order> orders = orderMap.get(o.getNickname());
+			int sellOrderCount = 0;
+			for(Order orderInList : orders){
+				if(orderInList.isSellOrder()){
+					sellOrderCount++;
+				}
+				
+			}
+			if(sellOrderCount < 5 || o.isBuyOrder()){
+				orders.add(o);
+				return true;
+			}else{
+				serverComm.sendError(o.getNickname(), "Sellers cannot have more than five sell orders unfulfilled at any time");
+				return false;
+			}
+
+		}
+		serverComm.sendError(o.getNickname(), "A single order quantity (buy or sell order) can never be lower than 10 units");
+		return false;
 	}
+
 
 	/**
 	 * Process the sell order
