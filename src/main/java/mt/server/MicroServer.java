@@ -44,10 +44,9 @@ import mt.filter.AnalyticsFilter;
  * MicroTraderServer implementation. This class should be responsible
  * to do the business logic of stock transactions between buyers and sellers.
  * 
- * @author alc
+ * @author Group 78
  *
  */
-
 /*Clients are not allowed to issue sell orders for their own buy orders and vice versa
 *Aplicação da Regra para a regição da Europa
 */
