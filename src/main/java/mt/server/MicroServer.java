@@ -27,7 +27,6 @@ import mt.filter.AnalyticsFilter;
  * @author Group 78
  *
  */
-
 /*Clients are not allowed to issue sell orders for their own buy orders and vice versa
 *Aplicação da Regra para a regição da Europa
 */
@@ -107,7 +106,6 @@ public class MicroServer implements MicroTraderServer {
 					if(msg.getOrder().getServerOrderID() == EMPTY){
 						msg.getOrder().setServerOrderID(id++);
 					}
-					//remover o metodo notifyAllClients para chamar no metodo mais abaixo
 					processNewOrder(msg);
 				} catch (ServerException e) {
 					serverComm.sendError(msg.getSenderNickname(), e.getMessage());
@@ -247,7 +245,6 @@ public class MicroServer implements MicroTraderServer {
 
 			// reset the set of changed orders
 			updatedOrders = new HashSet<>();
-
 		}
 	}
 
@@ -256,10 +253,6 @@ public class MicroServer implements MicroTraderServer {
 	 * 
 	 * @param o
 	 * 			the order to be stored on map
-	 */
-	/*
-	 * Alteração do metodo SaveOrder para cumprir o pedido feito pela regra no Enunciado.
-	 * Região da Europa
 	 */
 	private boolean saveOrder(Order o) {
 		LOGGER.log(Level.INFO, "Storing the new order...");
@@ -401,4 +394,3 @@ public class MicroServer implements MicroTraderServer {
 	}
 
 }
-
