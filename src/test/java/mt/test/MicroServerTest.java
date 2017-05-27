@@ -61,6 +61,9 @@ public class MicroServerTest {
 	@Mock
 	private ServerSideMessage msg11;
 	
+	@Mock
+	private ServerSideMessage msg12;
+	
 	@Before
 	public void setup(){
 		ms = new MicroServer();
@@ -70,7 +73,7 @@ public class MicroServerTest {
 		when(msg1.getSenderNickname()).thenReturn("userA");
 		
 		when(msg2.getType()).thenReturn(Type.NEW_ORDER);
-		when(msg2.getOrder()).thenReturn(Order.createSellOrder("userA", "MSFT", 10, 20.0));
+		when(msg2.getOrder()).thenReturn(Order.createSellOrder("userA", "MSFT", 10, 1));
 		when(msg2.getSenderNickname()).thenReturn("userA");
 		
 		when(msg3.getType()).thenReturn(Type.CONNECTED);
@@ -78,7 +81,7 @@ public class MicroServerTest {
 		when(msg3.getSenderNickname()).thenReturn("userB");
 		
 		when(msg4.getType()).thenReturn(Type.NEW_ORDER);
-		when(msg4.getOrder()).thenReturn(Order.createBuyOrder("userB", "MSFT", 5, 21.0));
+		when(msg4.getOrder()).thenReturn(Order.createBuyOrder("userB", "MSFT", 5, 1));
 		when(msg4.getSenderNickname()).thenReturn("userB");
 		
 		when(msg5.getType()).thenReturn(Type.DISCONNECTED);
@@ -94,18 +97,24 @@ public class MicroServerTest {
 		when(msg7.getSenderNickname()).thenReturn(null);
 		
 		when(msg8.getType()).thenReturn(Type.NEW_ORDER);
-		when(msg8.getOrder()).thenReturn(Order.createBuyOrder("userB", "ISCTE", 15, 21.0));
+		when(msg8.getOrder()).thenReturn(Order.createBuyOrder("userB", "ISCTE", 15, 1));
 		when(msg8.getSenderNickname()).thenReturn("userB");
 		
 		when(msg9.getType()).thenReturn(Type.NEW_ORDER);
-		when(msg9.getOrder()).thenReturn(Order.createSellOrder("userA", "ISCTE", 10, 20.0));
+		when(msg9.getOrder()).thenReturn(Order.createSellOrder("userA", "ISCTE", 15, 1));
 		when(msg9.getSenderNickname()).thenReturn("userA");	
 	
 		when(msg10.getType()).thenReturn(Type.NEW_ORDER);
 		when(msg10.getOrder()).thenReturn(null);
 		when(msg10.getSenderNickname()).thenReturn("userA");	
 		
+		when(msg11.getType()).thenReturn(Type.NEW_ORDER);
+		when(msg11.getOrder()).thenReturn(Order.createSellOrder("userA", "NEW", 35, 1));
+		when(msg11.getSenderNickname()).thenReturn("userA");	
 		
+		when(msg12.getType()).thenReturn(Type.NEW_ORDER);
+		when(msg12.getOrder()).thenReturn(Order.createBuyOrder("userB", "NEW", 35, 1));
+		when(msg12.getSenderNickname()).thenReturn("userA");	
 	}
 	
 	@After
@@ -127,8 +136,8 @@ public class MicroServerTest {
 		
 		ms.start(serverComm);
 		
-		verify(serverComm, atLeastOnce()).sendOrder("userB", Order.createSellOrder("userA", "MSFT", 5, 20.0) );
-		verify(serverComm, atLeastOnce()).sendOrder("userB", Order.createBuyOrder("userB", "MSFT", 0, 21.0) );
+		verify(serverComm, atLeastOnce()).sendOrder("userB", Order.createSellOrder("userA", "MSFT", 15,1) );
+		verify(serverComm, atLeastOnce()).sendOrder("userB", Order.createBuyOrder("userB", "MSFT", 15, 1) );
 	}
 	
 	@Test
@@ -163,7 +172,7 @@ public class MicroServerTest {
 		when(serverComm.getNextMessage()).thenReturn(msg3).thenReturn(msg8).thenReturn(msg1).thenReturn(msg9).thenReturn(null);
 		
 		ms.start(serverComm);
-		verify(serverComm, atLeastOnce()).sendOrder("userB",Order.createBuyOrder("userB", "ISCTE", 5, 21.0) );
+		verify(serverComm, atLeastOnce()).sendOrder("userB",Order.createBuyOrder("userB", "ISCTE", 5, 1) );
 		
 	}
 	
@@ -172,7 +181,7 @@ public class MicroServerTest {
 		when(serverComm.getNextMessage()).thenReturn(msg1).thenReturn(msg2).thenReturn(msg3).thenReturn(msg4).thenReturn(msg5).thenReturn(msg6).thenReturn(null);
 		ms.start(serverComm);
 		
-		verify(serverComm, atLeastOnce()).sendOrder("userA", Order.createSellOrder("userA", "MSFT", 5, 20.0));
+		verify(serverComm, atLeastOnce()).sendOrder("userA", Order.createSellOrder("userA", "MSFT", 5, 1));
 	}
 	
 	@Test
@@ -183,11 +192,10 @@ public class MicroServerTest {
 		verify(serverComm, atLeastOnce()).sendError(msg1.getSenderNickname(), "The user " + msg1.getSenderNickname() + " is already connected.");
 	}
 	
-//	@Test
-//	public void testProcessUserDisconnected() throws Exception {		
-//		when(serverComm.getNextMessage()).thenReturn(msg1).thenReturn(msg2).thenReturn(msg3).thenReturn(msg4).thenReturn(msg8).thenReturn(msg9).thenReturn(msg10).thenReturn(msg5).thenReturn(msg6).thenReturn(null);
-//		ms.start(serverComm);
-//		
-//		verify(serverComm, atLeastOnce()).sendOrder("userA", Order.createBuyOrder("userB", "ISCTE", 5, 21.0));
-//	}
+	@Test
+	public void testProcessUserDisconnected() throws Exception {		
+		when(serverComm.getNextMessage()).thenReturn(msg1).thenReturn(msg2).thenReturn(msg3).thenReturn(msg4).thenReturn(msg8).thenReturn(msg9).thenReturn(msg10).thenReturn(msg5).thenReturn(msg6).thenReturn(null);
+		ms.start(serverComm);
+		verify(serverComm, atLeastOnce()).sendOrder("userA", Order.createBuyOrder("userB", "ISCTE", 15, 1));
+	}
 }
